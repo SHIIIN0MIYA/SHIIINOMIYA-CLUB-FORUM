@@ -47,7 +47,7 @@ export async function createComment(formData: FormData) {
   // 通知帖子作者
   const post = await db.post.findUnique({ where: { id: postId }, select: { authorId: true, title: true } });
   if (post && session.user.id !== post.authorId) {
-    await db.notification.create({
+    await db.userNotification.create({
       data: {
         type: 'comment',
         message: `${session.user.name || '用户'} 评论了你的帖子「${post.title}」`,
@@ -65,7 +65,7 @@ export async function createComment(formData: FormData) {
       const name = mention.slice(1);
       const mentionedUser = await db.user.findFirst({ where: { name } });
       if (mentionedUser && mentionedUser.id !== session.user.id && mentionedUser.id !== post.authorId) {
-        await db.notification.create({
+        await db.userNotification.create({
           data: {
             type: 'mention',
             message: `${session.user.name || '用户'} 在帖子「${post.title}」中提到了你`,
@@ -100,7 +100,7 @@ export async function toggleLike(postId: string) {
     await db.like.create({ data: { userId, postId } });
     // 通知帖子作者（不要给自己发通知）
     if (userId !== post.authorId) {
-      await db.notification.create({
+      await db.userNotification.create({
         data: {
           type: 'like',
           message: `${session.user.name || '用户'} 赞了你的帖子`,
