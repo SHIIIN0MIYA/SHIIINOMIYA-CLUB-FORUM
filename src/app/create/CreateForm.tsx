@@ -13,9 +13,10 @@ export default function CreateForm() {
   async function handleSubmit(formData: FormData) {
     setError('');
     try {
-      await createPost(formData);
-    } catch (e: any) {
-      setError(e.message || '发帖失败');
+      const post = await createPost(formData);
+      router.push(`/posts/${post.id}`);
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : '发帖失败');
     }
   }
 
@@ -34,6 +35,7 @@ export default function CreateForm() {
               type="text"
               name="title"
               placeholder="帖子标题"
+              maxLength={120}
               className="w-full bg-[var(--surface)] border border-[var(--card-border)] rounded-lg px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-[var(--accent)]"
               required
             />
@@ -44,6 +46,7 @@ export default function CreateForm() {
               name="content"
               rows={8}
               placeholder="写下你的内容...（支持 Markdown）"
+              maxLength={50000}
               className="w-full bg-[var(--surface)] border border-[var(--card-border)] rounded-lg px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-[var(--accent)] resize-none"
               required
             />
@@ -64,6 +67,7 @@ export default function CreateForm() {
               type="text"
               name="tags"
               placeholder="例如：React,前端,教程"
+              maxLength={200}
               className="w-full bg-[var(--surface)] border border-[var(--card-border)] rounded-lg px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-[var(--accent)]"
             />
           </div>

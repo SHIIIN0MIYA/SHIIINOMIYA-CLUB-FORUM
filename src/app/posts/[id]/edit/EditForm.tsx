@@ -32,8 +32,8 @@ export default function EditForm({ postId, title: initTitle, content: initConten
     try {
       await editPost(postId, formData);
       router.push(`/posts/${postId}`);
-    } catch (err: any) {
-      setError(err.message || '保存失败');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : '保存失败');
     } finally {
       setSaving(false);
     }
@@ -49,6 +49,7 @@ export default function EditForm({ postId, title: initTitle, content: initConten
           onChange={(e) => setTitle(e.target.value)}
           className="w-full bg-[var(--surface)] border border-[var(--card-border)] rounded-lg px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-[var(--accent)]"
           required
+          maxLength={120}
         />
       </div>
       <div>
@@ -59,6 +60,7 @@ export default function EditForm({ postId, title: initTitle, content: initConten
           rows={10}
           className="w-full bg-[var(--surface)] border border-[var(--card-border)] rounded-lg px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-[var(--accent)] resize-none"
           required
+          maxLength={50000}
         />
       </div>
       <div>
@@ -67,6 +69,7 @@ export default function EditForm({ postId, title: initTitle, content: initConten
           type="text"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
+          maxLength={200}
           className="w-full bg-[var(--surface)] border border-[var(--card-border)] rounded-lg px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-[var(--accent)]"
         />
       </div>

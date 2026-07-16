@@ -6,10 +6,11 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 
 interface NavbarProps {
-  user: { name: string | null } | null;
+  user: { name: string | null; role: string } | null;
+  unreadMessages: number;
 }
 
-const NavbarClient = ({ user }: NavbarProps) => {
+const NavbarClient = ({ user, unreadMessages }: NavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
@@ -103,6 +104,54 @@ const NavbarClient = ({ user }: NavbarProps) => {
           
           {user ? (
             <>
+              <li>
+                <Link
+                  href="/messages"
+                  onClick={closeMenu}
+                  className={`relative block px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    pathname.startsWith('/messages')
+                      ? 'text-[var(--accent)] bg-[rgba(201,169,110,0.1)]'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  私信
+                  {unreadMessages > 0 && (
+                    <span className="ml-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-red-400 px-1 text-[10px] font-bold text-black">
+                      {unreadMessages > 99 ? '99+' : unreadMessages}
+                    </span>
+                  )}
+                </Link>
+              </li>
+              {user.role === 'admin' && (
+                <li>
+                  <Link
+                    href="/admin/users"
+                    onClick={closeMenu}
+                    className={`block px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                      pathname.startsWith('/admin')
+                        ? 'text-[var(--accent)] bg-[rgba(201,169,110,0.1)]'
+                        : 'text-gray-300 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    用户管理
+                  </Link>
+                </li>
+              )}
+              {user.role === 'admin' && (
+                <li>
+                  <Link
+                    href="/admin/messages"
+                    onClick={closeMenu}
+                    className={`block px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                      pathname === '/admin/messages'
+                        ? 'text-[var(--accent)] bg-[rgba(201,169,110,0.1)]'
+                        : 'text-gray-300 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    私信管理
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link
                   href="/profile"

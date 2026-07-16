@@ -37,7 +37,11 @@ export default async function NotificationsPage() {
             {notifications.map((n) => (
               <Link
                 key={n.id}
-                href={n.postId ? `/posts/${n.postId}` : '#'}
+                href={
+                  n.postId
+                    ? `/posts/${n.postId}${n.commentId ? `#comment-${n.commentId}` : ''}`
+                    : '#'
+                }
                 className={`block p-4 rounded-lg border transition-colors hover:bg-white/5 ${
                   n.read ? 'bg-transparent border-white/5' : 'bg-[var(--surface)] border-[var(--accent)]/30'
                 }`}
@@ -45,7 +49,10 @@ export default async function NotificationsPage() {
                 <div className="flex items-center gap-2">
                   {n.type === 'like' && <span>❤️</span>}
                   {n.type === 'comment' && <span>💬</span>}
+                  {n.type === 'reply' && <span>↩</span>}
                   {n.type === 'mention' && <span>📢</span>}
+                  {n.type === 'comment_like' && <span>♥</span>}
+                  {n.type === 'admin_warning' && <span>⚠</span>}
                   <span className="text-white">{n.message}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 
 interface ImageUploaderProps {
   onUpload: (url: string) => void;
@@ -57,7 +58,16 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
       >
         {uploading ? '上传中...' : '🖼️ 插入图片'}
       </button>
-      {preview && <img src={preview} alt="预览" className="mt-2 max-h-32 rounded" />}
+      {preview && (
+        <Image
+          src={preview}
+          alt="预览"
+          width={240}
+          height={128}
+          unoptimized
+          className="mt-2 max-h-32 w-auto rounded object-contain"
+        />
+      )}
     </div>
   );
 }

@@ -16,18 +16,20 @@ export default function LikeButton({ postId, initialLikes, initialLiked }: LikeB
 
   async function handleClick() {
     if (pending) return;
+    const previousLiked = liked;
+    const previousLikes = likes;
     setPending(true);
 
     // 乐观更新
-    setLiked(!liked);
-    setLikes(liked ? likes - 1 : likes + 1);
+    setLiked(!previousLiked);
+    setLikes(previousLiked ? previousLikes - 1 : previousLikes + 1);
 
     try {
       await toggleLike(postId);
     } catch {
       // 失败时恢复
-      setLiked(liked);
-      setLikes(initialLikes);
+      setLiked(previousLiked);
+      setLikes(previousLikes);
     } finally {
       setPending(false);
     }

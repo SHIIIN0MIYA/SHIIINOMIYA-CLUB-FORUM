@@ -3,39 +3,58 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model User {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   name         String?
-  email        String?   @unique
+  email        String?  @unique
   passwordHash String?
   image        String?
-  role         String    @default("user")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  backgroundImage String?
+  role         String   @default("user")
+  messagingPreference String @default("EVERYONE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  posts    Post[]
-  comments Comment[]
-  likes    Like[]
-  notifications UserNotification[]
+  posts             Post[]
+  comments          Comment[]
+  commentLikes      CommentLike[]
+  likes             Like[]
+  notifications     UserNotification[] @relation("NotificationRecipient")
+  sentNotifications UserNotification[] @relation("NotificationSender")
+  conversationMembers ConversationMember[]
+  sentMessages         Message[]            @relation("MessageSender")
+  hiddenMessages       HiddenMessage[]
+  blocksCreated        UserBlock[]          @relation("Blocker")
+  blocksReceived       UserBlock[]          @relation("Blocked")
+  messageReports       MessageReport[]       @relation("MessageReporter")
+  gameInvitations      GameSession[]         @relation("GameInviter")
+  gameWins             GameSession[]         @relation("GameWinner")
+  gameStats            GameStat[]
 }
 
 model Post {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   title     String
   content   String
-  tags      String    @default("")
-  pinned    Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  tags      String   @default("")
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   authorId  String
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  comments Comment[]
-  likes    Like[]
+  comments      Comment[]
+  likes         Like[]
+  notifications UserNotification[]
+  sharedMessages Message[]
+
+  @@index([pinned, createdAt])
+  @@index([authorId, createdAt])
 }
 
 model Comment {
@@ -45,8 +64,29 @@ model Comment {
   updatedAt DateTime @updatedAt
   authorId  String
   postId    String
+  parentId  String?
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  likes     CommentLike[]
+  notifications UserNotification[]
+
+  @@index([postId, createdAt])
+  @@index([authorId, createdAt])
+  @@index([parentId, createdAt])
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String
+  commentId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@index([commentId])
 }
 
 model Like {
@@ -58,17 +98,175 @@ model Like {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  @@index([postId])
 }
 
-
 model UserNotification {
-  id          String   @id @default(cuid())
-  type        String
-  message     String
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  userId      String
-  postId      String?
-  fromUserId  String?
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  type       String
+  message    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  userId     String
+  postId     String?
+  commentId  String?
+  fromUserId String?
+  user       User     @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  post       Post?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+  comment    Comment? @relation(fields: [commentId], references: [id], onDelete: SetNull)
+  fromUser   User?    @relation("NotificationSender", fields: [fromUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read, createdAt])
+  @@index([postId])
+  @@index([commentId])
+  @@index([fromUserId])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  pairKey   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  ConversationMember[]
+  messages Message[]
+  games    GameSession[]
+  gameStats GameStat[]
+
+  @@index([updatedAt])
+}
+
+model ConversationMember {
+  id             String    @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime  @default(now())
+  lastReadAt     DateTime?
+  hiddenAt       DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId, hiddenAt])
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  conversationId String
+  senderId       String
+  type           String    @default("TEXT")
+  content        String    @default("")
+  postId         String?
+  replyToId      String?
+  createdAt      DateTime  @default(now())
+  revokedAt      DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  post           Post?        @relation(fields: [postId], references: [id], onDelete: SetNull)
+  replyTo        Message?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[]    @relation("MessageReplies")
+  attachments    MessageAttachment[]
+  hiddenBy       HiddenMessage[]
+  reports        MessageReport[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+  @@index([postId])
+}
+
+model MessageAttachment {
+  id        String   @id @default(cuid())
+  messageId String
+  url       String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+model HiddenMessage {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId])
+}
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model MessageReport {
+  id         String   @id @default(cuid())
+  messageId  String
+  reporterId String
+  reason     String
+  status     String   @default("OPEN")
+  note       String   @default("")
+  createdAt  DateTime @default(now())
+  resolvedAt DateTime?
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reporter   User     @relation("MessageReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, reporterId])
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
+}
+
+model SecurityRateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
+model GameSession {
+  id             String    @id @default(cuid())
+  conversationId String
+  type           String
+  status         String    @default("INVITED")
+  inviterId      String
+  winnerId       String?
+  state          Json
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  completedAt    DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  inviter        User         @relation("GameInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  winner         User?        @relation("GameWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, status, updatedAt])
+  @@index([inviterId, createdAt])
+  @@index([winnerId])
+}
+
+model GameStat {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  gameType       String
+  wins           Int      @default(0)
+  played         Int      @default(0)
+  updatedAt      DateTime @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId, gameType])
+  @@index([userId, gameType])
 }

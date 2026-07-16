@@ -25,8 +25,8 @@ export default function ChangePasswordForm() {
     try {
       await changePassword(formData);
       setMessage('密码修改成功！');
-    } catch (err: any) {
-      setError(err.message || '修改失败');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : '修改失败');
     } finally {
       setLoading(false);
     }
@@ -46,14 +46,15 @@ export default function ChangePasswordForm() {
         />
       </div>
       <div>
-        <label className="block text-sm text-gray-400 mb-1">新密码（至少6位）</label>
+        <label className="block text-sm text-gray-400 mb-1">新密码（至少 8 位）</label>
         <input
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           placeholder="输入新密码"
           required
-          minLength={6}
+          minLength={8}
+          maxLength={72}
           className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 outline-none focus:border-[var(--accent)]"
         />
       </div>
@@ -65,6 +66,7 @@ export default function ChangePasswordForm() {
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="再次输入新密码"
           required
+          maxLength={72}
           className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 outline-none focus:border-[var(--accent)]"
         />
       </div>

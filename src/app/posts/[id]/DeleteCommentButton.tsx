@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { deleteComment } from '../../actions';
 
 interface DeleteCommentButtonProps {
@@ -9,11 +10,13 @@ interface DeleteCommentButtonProps {
 
 export default function DeleteCommentButton({ commentId }: DeleteCommentButtonProps) {
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function handleDelete() {
     setLoading(true);
     try {
       await deleteComment(commentId);
+      router.refresh();
     } catch (e: any) {
       alert(e.message || '删除失败');
       setLoading(false);

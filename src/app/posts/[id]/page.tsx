@@ -7,8 +7,10 @@ import LikeButton from './LikeButton';
 import PostActions from './PostActions';
 import BanUserButton from './BanUserButton';
 import { auth } from '../../../auth';
-import DeleteCommentButton from './DeleteCommentButton';
 import ReactMarkdown from 'react-markdown';
+import MessageUserButton from '../../../components/MessageUserButton';
+import CommentThread from './CommentThread';
+import Image from 'next/image';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -25,7 +27,12 @@ export default async function PostDetailPage({ params }: PageProps) {
       comments: {
         orderBy: { createdAt: 'asc' },
         include: {
-          author: { select: { name: true } },
+          author: { select: { name: true, image: true } },
+          likes: {
+            where: { userId: session?.user?.id || '__anonymous__' },
+            select: { id: true },
+          },
+          _count: { select: { likes: true } },
         },
       },
       _count: { select: { likes: true } },
@@ -52,7 +59,6 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   const isAuthor = session?.user?.id === post.authorId;
   const isAdmin = session?.user?.role === 'admin';
-console.log('session role:', session?.user?.role);
 
   return (
     <div className="relative z-10 min-h-screen px-6 pt-24 pb-16">
@@ -73,7 +79,29 @@ console.log('session role:', session?.user?.role);
 
         {/* 作者与时间 */}
         <div className="flex items-center gap-3 text-sm text-gray-400 mb-6">
-          <span>{post.author.name || '匿名'}</span>
+          <Link
+            href={`/users/${post.authorId}`}
+            className="flex items-center gap-2 hover:text-white"
+          >
+            {post.author.image ? (
+              <Image
+                src={post.author.image}
+                alt={post.author.name || '作者头像'}
+                width={32}
+                height={32}
+                unoptimized
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            ) : (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] font-bold text-black">
+                {(post.author.name || '匿')[0]}
+              </span>
+            )}
+            <span>{post.author.name || '匿名'}</span>
+          </Link>
+          {session?.user?.id && !isAuthor && post.author.role !== 'banned' && (
+            <MessageUserButton userId={post.authorId} postId={post.id} compact />
+          )}
           {isAdmin && !isAuthor && (
             <BanUserButton userId={post.authorId} currentRole={post.author.role} />
           )}
@@ -123,32 +151,22 @@ console.log('session role:', session?.user?.role);
           {post.comments.length === 0 ? (
             <p className="text-gray-500">暂无评论，来发表第一条吧。</p>
           ) : (
-            <div className="space-y-4 mb-6">
-              {post.comments.map((comment) => (
-                <div
-                  key={comment.id}
-                  className="bg-[var(--surface)] border border-[var(--card-border)] rounded-lg p-4"
-                >
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="font-medium text-white">
-                      {comment.author.name || '匿名'}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </span>
-                      {/* 删除按钮：评论作者、帖子作者、管理员均可删除 */}
-                      {(session?.user?.id === comment.authorId ||
-                        session?.user?.id === post.authorId ||
-                        isAdmin) && (
-                        <DeleteCommentButton commentId={comment.id} />
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-[var(--text-secondary)]">{comment.content}</p>
-                </div>
-              ))}
-            </div>
+            <CommentThread
+              comments={post.comments.map((comment) => ({
+                id: comment.id,
+                content: comment.content,
+                authorId: comment.authorId,
+                parentId: comment.parentId,
+                createdAt: comment.createdAt.toISOString(),
+                author: comment.author,
+                likeCount: comment._count.likes,
+                liked: comment.likes.length > 0,
+              }))}
+              postId={post.id}
+              postAuthorId={post.authorId}
+              currentUserId={session?.user?.id || null}
+              isAdmin={isAdmin}
+            />
           )}
 
           <CommentForm postId={post.id} />

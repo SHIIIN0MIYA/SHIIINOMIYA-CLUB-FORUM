@@ -1,0 +1,13 @@
+.env
+.env.*
+.data
+.next
+.vercel
+.vercel-hostname-patch.cjs
+dev.db
+prisma/dev.db
+prisma/dev.db-journal
+public/uploads
+tsconfig.tsbuildinfo
+Dockerfile
+.dockerignore

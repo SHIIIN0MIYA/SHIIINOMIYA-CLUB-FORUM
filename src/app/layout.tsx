@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import NavbarServer from '../components/NavbarServer';
+import GlobalParticleBackground from '../components/GlobalParticleBackground';
 
 export const metadata: Metadata = {
   title: 'SHIIIINOMIYA 论坛',
@@ -15,8 +16,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="bg-[#0a0a0f] text-white antialiased">
+        <GlobalParticleBackground />
         <NavbarServer />
-        <main className="pt-16">{children}</main>
+        <main className="relative z-10 pt-16">{children}</main>
       </body>
     </html>
   );

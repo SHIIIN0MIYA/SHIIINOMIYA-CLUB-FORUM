@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { editPost, deletePost, togglePin } from '../../actions';
+import { deletePost, togglePin } from '../../actions';
 
 interface PostActionsProps {
   postId: string;
@@ -25,9 +25,10 @@ export default function PostActions({ postId, isAuthor, isAdmin, pinned }: PostA
     setDeleting(true);
     try {
       await deletePost(postId);
-      // deletePost 内部会 redirect 到 /posts，此处可不处理
-    } catch (e: any) {
-      alert(e.message || '删除失败');
+      router.push('/posts');
+      router.refresh();
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : '删除失败');
       setDeleting(false);
     }
   }
@@ -36,8 +37,9 @@ export default function PostActions({ postId, isAuthor, isAdmin, pinned }: PostA
     setPinLoading(true);
     try {
       await togglePin(postId);
-    } catch (e: any) {
-      alert(e.message || '操作失败');
+      router.refresh();
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : '操作失败');
     } finally {
       setPinLoading(false);
     }

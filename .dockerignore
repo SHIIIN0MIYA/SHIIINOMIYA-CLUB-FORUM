@@ -1,0 +1,13 @@
+node_modules
+.git
+.gitignore
+README.md
+.env
+.env.local
+.env.production
+.next
+prisma/dev.db
+prisma/dev.db-journal
+public/uploads/*
+!public/uploads/.gitkeep
+*.md
